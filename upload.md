@@ -6,6 +6,17 @@
 5 git push -u -f origin master
 
 
+mysql
+1 brew install mysql
+2 mysql.server start
+3 mysql_secure_installation
+
+
+ls -l 查询link信息
+
+
+show variables like 'character_set_%';
+
 
 
 

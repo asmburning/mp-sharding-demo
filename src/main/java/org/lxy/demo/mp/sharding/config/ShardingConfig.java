@@ -1,10 +1,10 @@
 package org.lxy.demo.mp.sharding.config;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.config.GlobalConfig;
 import com.baomidou.mybatisplus.extension.plugins.PaginationInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.PerformanceInterceptor;
 import com.baomidou.mybatisplus.extension.spring.MybatisSqlSessionFactoryBean;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
@@ -34,8 +34,8 @@ public class ShardingConfig {
         config.setJdbcUrl("jdbc:mysql://localhost:3306/mp");
         config.setMinimumIdle(10);
         config.setMaximumPoolSize(20);
-        config.setUsername("bart");
-        config.setPassword("51mp50n");
+        config.setUsername("root");
+        config.setPassword("1234");
         config.addDataSourceProperty("cachePrepStmts", "true");
         config.addDataSourceProperty("prepStmtCacheSize", "250");
         config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
@@ -47,7 +47,7 @@ public class ShardingConfig {
     DataSource shardingDataSource() throws Exception {
         ShardingRuleConfiguration shardingRuleConfig = new ShardingRuleConfiguration();
         shardingRuleConfig.getTableRuleConfigs().add(getOrderTableRuleConfiguration());
-        shardingRuleConfig.getBindingTableGroups().add("t_test, t_test_item");
+        shardingRuleConfig.getBindingTableGroups().add("t_book, t_test");
         //shardingRuleConfig.getBroadcastTables().add("t_config");
         //shardingRuleConfig.setDefaultDatabaseShardingStrategyConfig(new InlineShardingStrategyConfiguration("user_id", "ds${user_id % 2}"));
         shardingRuleConfig.setDefaultTableShardingStrategyConfig(new StandardShardingStrategyConfiguration("guid", new IdWorkerMonthTableShardingStrategy()));
@@ -56,7 +56,7 @@ public class ShardingConfig {
 
     TableRuleConfiguration getOrderTableRuleConfiguration() {
         TableRuleConfiguration result = new TableRuleConfiguration();
-        result.setLogicTable("t_test");
+        result.setLogicTable("t_book");
         result.setTableShardingStrategyConfig(new StandardShardingStrategyConfiguration("guid", new IdWorkerMonthTableShardingStrategy()));
         //result.setActualDataNodes("ds${0..1}.t_order${0..1}");
         return result;
@@ -78,6 +78,7 @@ public class ShardingConfig {
         dbConfig.setIdType(IdType.ID_WORKER_STR);
         // 手动指定db 的类型, 这里是mysql
         globalConfig.setDbConfig(dbConfig);
+
         // 逻辑删除注入器
         return globalConfig;
     }
@@ -89,17 +90,27 @@ public class ShardingConfig {
         MybatisSqlSessionFactoryBean sqlSessionFactoryBean = new MybatisSqlSessionFactoryBean();
         sqlSessionFactoryBean.setDataSource(shardingDataSource());
         sqlSessionFactoryBean.setGlobalConfig(globalConfig);
+
         MybatisConfiguration configuration = new MybatisConfiguration();
         configuration.setGlobalConfig(globalConfig);
         configuration.setMapUnderscoreToCamelCase(true);
         sqlSessionFactoryBean.setConfiguration(configuration);
+
+
         List<Interceptor> interceptors = new ArrayList<>();
         PaginationInterceptor paginationInterceptor = new PaginationInterceptor();
         // 设置分页插件
         interceptors.add(paginationInterceptor);
         // 如果是dev环境,打印出sql, 设置sql拦截插件, prod环境不要使用, 会影响性能
-        PerformanceInterceptor performanceInterceptor = new PerformanceInterceptor();
-        interceptors.add(performanceInterceptor);
+        //PerformanceInterceptor performanceInterceptor = new PerformanceInterceptor();
+        //interceptors.add(performanceInterceptor);
+
+        MybatisPlusProperties plusProperties = new MybatisPlusProperties();
+        plusProperties.setMapperLocations("classpath:mybatis/mapper/*.xml".split(","));
+
+        // 设置mapper地址
+        sqlSessionFactoryBean.setMapperLocations(plusProperties.resolveMapperLocations());
+
         sqlSessionFactoryBean.setPlugins(interceptors.toArray(new Interceptor[0]));
         return sqlSessionFactoryBean;
     }
